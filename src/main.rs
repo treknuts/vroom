@@ -1,13 +1,8 @@
-use axum::{http::StatusCode, response::Json, routing::get, Router};
 use serde::Serialize;
 use std::io::prelude::*;
-use std::net::{SocketAddr, TcpListener, TcpStream};
+use std::io::{self, BufRead};
+use std::net::{TcpListener, TcpStream};
 use uuid::Uuid;
-
-#[derive(Serialize)]
-struct Chat {
-    id: Uuid,
-}
 
 //    Basic Axum stuff. Might just build TCP stuff from scratch
 //    let app = Router::new()
@@ -24,15 +19,25 @@ struct Chat {
 //    Ok(())
 
 fn handle_client(mut stream: TcpStream) -> std::io::Result<()> {
-    stream.write(&[1])?;
-    stream.read(&mut [0; 128])?;
+    let outgoing = stream.write(b"Welcome to my Rusty TCP Listener")?;
+    println!("Sending: {}", outgoing.to_string());
+
+    let mut reader = io::BufReader::new(&mut stream);
+    let received = reader.fill_buf()?.to_vec();
+
+    reader.consume(received.len());
+
+    let _ = String::from_utf8(received)
+        .map(|msg| println!("Received: {}", msg))
+        .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Couldn't parse message as utf8"));
+
     Ok(())
 }
 
 // #[tokio::main]
 // async
 fn main() -> std::io::Result<()> {
-    let socket = TcpListener::bind("127.0.0.1:80")?;
+    let socket = TcpListener::bind("127.0.0.1:8080")?;
 
     for stream in socket.incoming() {
         let _ = handle_client(stream?);
