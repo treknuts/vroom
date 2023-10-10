@@ -30,9 +30,10 @@ use std::net::SocketAddr;
 async fn main() -> std::io::Result<()> {
     let app = Router::new().route("/", get(health_check));
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3001));
+    let port = std::env::var("PORT").unwrap_or_else(|_| "3000".to_string());
+    let addr = format!("0.0.0.0:{}", port);
 
-    axum::Server::bind(&addr)
+    axum::Server::bind(&addr.parse().unwrap())
         .serve(app.into_make_service())
         .await
         .unwrap();
