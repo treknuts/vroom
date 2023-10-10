@@ -15,6 +15,6 @@ RUN cargo chef cook --recipe-path recipe.json
 COPY . .
 RUN cargo build --release
 
-FROM rust:1.65-slim AS template-rust
+FROM rust:1.72-slim AS template-rust
 COPY --from=builder /app/target/release/vroom /usr/local/bin
 ENTRYPOINT ["/usr/local/bin/vroom"]
