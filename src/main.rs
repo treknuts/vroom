@@ -1,6 +1,6 @@
 use axum::routing::{get, Router};
 // use serde::{Deserialize, Serialize};
-use std::net::SocketAddr;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 // use uuid::Uuid;
 
 // #[derive(Deserialize, Serialize, Clone)]
@@ -27,13 +27,21 @@ use std::net::SocketAddr;
 // }
 
 #[tokio::main]
-async fn main() -> std::io::Result<()> {
-    let app = Router::new().route("/", get(health_check));
+async fn main() -> Result<(), sqlx::Error> {
+    let db_url = std::env::var("DATABASE_URL").unwrap();
+    let pool = sqlx::postgres::PgPoolOptions::new()
+        .max_connections(2)
+        .connect(&db_url)
+        .await?;
 
-    let port = std::env::var("PORT").unwrap_or_else(|_| "3000".to_string());
-    let addr = format!("0.0.0.0:{}", port);
+    let app = Router::new().route("/", get(health_check)).with_state(pool);
 
-    axum::Server::bind(&addr.parse().unwrap())
+    let port = std::env::var("PORT")
+        .unwrap_or_else(|_| "3000".to_string())
+        .parse::<u16>();
+    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), port.unwrap());
+
+    axum::Server::bind(&addr)
         .serve(app.into_make_service())
         .await
         .unwrap();
